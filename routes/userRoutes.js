@@ -139,7 +139,7 @@ router.post("/login", async (req, res) => {
 
 
 //find single user 
-router.get("/:id", async (req, res) => {    
+router.get("/:id", async (req, res) => {
     try {
 
         const user = await User.findById(req.params.id).select("-passwordHash");
@@ -149,10 +149,11 @@ router.get("/:id", async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 });
-router.get("/:email", async (req, res) => {    
+router.get("/:email", async (req, res) => {
     try {
 
-        const user = await User.findOne(req.params.email).select("-passwordHash");
+        const user = await User.findOne({ email: req.params.email }).select("-passwordHash");
+
         if (!user) return res.status(404).json({ message: "User not found" });
         res.json(user);
     } catch (err) {
