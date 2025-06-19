@@ -66,14 +66,38 @@ router.get("/", async (req, res) => {
 
 
 // fetch single reel 
-router.get("/:id", async (req, res) => {
+router.get("/", async (req, res) => {
     try {
-        const video = await Reel.findById(req.params.id);
-        if (!video) { res.status(404).json({ message: "video not found!" }) };
-        res.status(200).json(video);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+        const skip = (page - 1) * limit;
+
+        const reels = await Reel.find({})
+            // [THIS IS THE KEY] Sorts by the 'createdAt' field.
+            // -1 means newest first. 1 would mean oldest first.
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .populate({
+                path: 'user',
+                select: 'username profilePictureUrl'
+            })
+            .populate({
+                path: 'comments',
+                populate: {
+                    path: 'user',
+                    select: 'username profilePictureUrl'
+                }
+            });
+
+        const totalReels = await Reel.countDocuments();
+        const hasMore = (page * limit) < totalReels;
+
+        res.status(200).json({ reels, hasMore });
+
     } catch (error) {
-        res.status(500).json({ message: "Error to Finding Video" });
-        console.log("Error to find video", error);
+        console.error("Error fetching latest reels:", error);
+        res.status(500).json({ message: "Error fetching reels." });
     }
 });
 
