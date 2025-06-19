@@ -149,7 +149,8 @@ router.get("/:id", async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 });
-router.get("/:email", async (req, res) => {
+
+router.get("/byemail/:email", async (req, res) => {
     try {
 
         const user = await User.findOne({ email: req.params.email }).select("-passwordHash");
