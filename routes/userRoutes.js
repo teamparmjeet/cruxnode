@@ -152,7 +152,7 @@ router.get("/:id", async (req, res) => {
 router.get("/:email", async (req, res) => {    
     try {
 
-        const user = await User.findById(req.params.email).select("-passwordHash");
+        const user = await User.findOne(req.params.email).select("-passwordHash");
         if (!user) return res.status(404).json({ message: "User not found" });
         res.json(user);
     } catch (err) {
