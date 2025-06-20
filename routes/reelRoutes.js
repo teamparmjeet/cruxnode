@@ -12,7 +12,7 @@ router.post("/upload", async (req, res) => {
         }
 
         const newReel = new Reel(
-           data
+            data
         );
 
         const savedReel = await newReel.save();
@@ -51,42 +51,54 @@ router.post("/upload", async (req, res) => {
     }
 });
 
+router.get("/", async (req, res) => {
+    try {
+        const reels = await Reel.find({});
+        res.status(200).json(reels);
+
+    } catch (error) {
+        res.status(500).json({ message: "Error to fetching data" });
+
+        console.log("Error to Fetching Data", error)
+    }
+});
+
 // fetch all reels
 const REELS_PER_PAGE = 4;
 
-router.get("/", async (req, res) => {
-  try {
-    // 1. Get the page number from query params, defaulting to 1 if not provided.
-    // We use parseInt to ensure it's a valid number.
-    const page = parseInt(req.query.page || "1", 10);
+router.get("/show", async (req, res) => {
+    try {
+        // 1. Get the page number from query params, defaulting to 1 if not provided.
+        // We use parseInt to ensure it's a valid number.
+        const page = parseInt(req.query.page || "1", 10);
 
-    // 2. Calculate the number of documents to skip based on the current page.
-    // For page 1, we skip 0. For page 2, we skip `REELS_PER_PAGE` documents, etc.
-    const skip = (page - 1) * REELS_PER_PAGE;
+        // 2. Calculate the number of documents to skip based on the current page.
+        // For page 1, we skip 0. For page 2, we skip `REELS_PER_PAGE` documents, etc.
+        const skip = (page - 1) * REELS_PER_PAGE;
 
-    // 3. Fetch the total count of all reels in the database.
-    // This helps the frontend know when to stop requesting more pages.
-    const totalReels = await Reel.countDocuments({});
+        // 3. Fetch the total count of all reels in the database.
+        // This helps the frontend know when to stop requesting more pages.
+        const totalReels = await Reel.countDocuments({});
 
-    // 4. Update the database query to:
-    //    - Sort by creation date to show the newest reels first (optional but recommended).
-    //    - Skip the documents from previous pages.
-    //    - Limit the number of documents to `REELS_PER_PAGE`.
-    const reels = await Reel.find({})
-      .sort({ createdAt: -1 }) // Make sure you have a `createdAt` timestamp in your schema
-      .skip(skip)
-      .limit(REELS_PER_PAGE);
+        // 4. Update the database query to:
+        //    - Sort by creation date to show the newest reels first (optional but recommended).
+        //    - Skip the documents from previous pages.
+        //    - Limit the number of documents to `REELS_PER_PAGE`.
+        const reels = await Reel.find({})
+            .sort({ createdAt: -1 }) // Make sure you have a `createdAt` timestamp in your schema
+            .skip(skip)
+            .limit(REELS_PER_PAGE);
 
-    // 5. Send the paginated data along with total pages information in a structured object.
-    res.status(200).json({
-      reels,
-      totalPages: Math.ceil(totalReels / REELS_PER_PAGE),
-      currentPage: page,
-    });
-  } catch (error) {
-    console.error("Error Fetching Data with Pagination:", error);
-    res.status(500).json({ message: "Error fetching reels" });
-  }
+        // 5. Send the paginated data along with total pages information in a structured object.
+        res.status(200).json({
+            reels,
+            totalPages: Math.ceil(totalReels / REELS_PER_PAGE),
+            currentPage: page,
+        });
+    } catch (error) {
+        console.error("Error Fetching Data with Pagination:", error);
+        res.status(500).json({ message: "Error fetching reels" });
+    }
 });
 
 
