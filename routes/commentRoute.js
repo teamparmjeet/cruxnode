@@ -2,29 +2,41 @@ const express = require("express");
 const router = express.Router();
 const Comment = require("../models/Comment");
 const User = require("../models/Users");
+const Reel2 = require("../models/Reel"); // This is your Reel model
 
 router.post("/new", async (req, res) => {
   try {
-    const { user, reel, text, parentComment } = await req.body;
+    const { user, reel, text, parentComment } = req.body;
+
     if (!user || !reel || !text) {
-      res.status(500).json({
-        message: "Somethink Error Occure in User or Reel or Comment"
+      return res.status(400).json({
+        message: "Missing user, reel, or comment text.",
       });
     }
 
-    const comment = new Comment(
-      {
-        user, reel, text, parentComment: parentComment || null,
-      }
+    // 1. Create new comment
+    const comment = new Comment({
+      user,
+      reel,
+      text,
+      parentComment: parentComment || null,
+    });
+
+    // 2. Save comment
+    const savedComment = await comment.save();
+
+    // 3. Add comment ID to the corresponding Reel
+    await Reel2.findByIdAndUpdate(
+      reel,
+      { $push: { comments: savedComment._id } }, // Use $addToSet to avoid duplicates
+      { new: true }
     );
 
-    const saveComment = await comment.save();
-
-    res.status(201).json(saveComment);
-
+    // 4. Respond with saved comment
+    res.status(201).json(savedComment);
   } catch (error) {
-    res.status(500).json({ message: "Error Occure in Comment" });
-
+    console.error("Comment creation error:", error);
+    res.status(500).json({ message: "Error occurred in Comment creation" });
   }
 });
 
