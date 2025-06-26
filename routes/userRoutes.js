@@ -109,7 +109,6 @@ router.post("/login", async (req, res) => {
         jwt.sign(
             payload,
             JWT_SECRET,
-            { expiresIn: '1h' }, // Token expiration (e.g., 1 hour, '7d' for 7 days, '30m' for 30 minutes)
             (err, token) => {
                 if (err) {
                     console.error("JWT signing error:", err);
