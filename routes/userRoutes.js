@@ -109,6 +109,7 @@ router.post("/login", async (req, res) => {
         jwt.sign(
             payload,
             JWT_SECRET,
+            // { expiresIn: '1h' }, // Token expiration (e.g., 1 hour, '7d' for 7 days, '30m' for 30 minutes)
             (err, token) => {
                 if (err) {
                     console.error("JWT signing error:", err);
@@ -153,6 +154,17 @@ router.get("/byemail/:email", async (req, res) => {
     try {
 
         const user = await User.findOne({ email: req.params.email }).select("-passwordHash");
+
+        if (!user) return res.status(404).json({ message: "User not found" });
+        res.json(user);
+    } catch (err) {
+        res.status(500).json({ message: "Server error" });
+    }
+});
+router.get("/byemailapp/:email", async (req, res) => {
+    try {
+
+        const user = await User.findOne({ email: req.params.email });
 
         if (!user) return res.status(404).json({ message: "User not found" });
         res.json(user);
