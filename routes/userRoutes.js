@@ -51,6 +51,13 @@ router.post("/", async (req, res) => {
         });
     } catch (error) {
         console.error("Error creating user:", error); // Log for debugging
+        if (error.code === 11000) {
+            const duplicatedField = Object.keys(error.keyPattern)[0];
+            return res.status(400).json({
+                message: `The ${duplicatedField} "${error.keyValue[duplicatedField]}" is already in use.`,
+                field: duplicatedField,
+            });
+        }
         res.status(500).json({ message: "Server error" });
     }
 });
