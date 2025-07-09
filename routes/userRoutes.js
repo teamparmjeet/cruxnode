@@ -5,8 +5,9 @@ const jwt = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT_SECRET;
 const authenticateToken = require("../middleware/auth");
 const logUserAction = require("../utils/logUserAction");
-
+const Reel = require("../models/Reel")
 const router = express.Router();
+
 
 router.post("/", async (req, res) => {
     try {
@@ -61,7 +62,6 @@ router.post("/", async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 });
-
 
 router.get("/", authenticateToken, async (req, res) => {
     try {
@@ -147,14 +147,23 @@ router.post("/login", async (req, res) => {
 
 //find single user 
 router.get("/:id", async (req, res) => {
-    try {
+  try {
+    // Step 1: Fetch the user (excluding password)
+    const user = await User.findById(req.params.id).select("-passwordHash");
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-        const user = await User.findById(req.params.id).select("-passwordHash");
-        if (!user) return res.status(404).json({ message: "User not found" });
-        res.json(user);
-    } catch (err) {
-        res.status(500).json({ message: "Server error" });
-    }
+    // Step 2: Count how many reels this user has posted
+    const postCount = await Reel.countDocuments({ user: req.params.id });
+
+    // Step 3: Return both user info and post count
+    res.json({
+      ...user.toObject(), // convert Mongoose doc to plain object to add extra field
+      postCount,
+    });
+  } catch (err) {
+    console.error("Error fetching user data:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 router.get("/byemail/:email", async (req, res) => {
