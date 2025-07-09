@@ -165,6 +165,30 @@ router.get("/:id", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+router.get("/userpost/:id", async (req, res) => {
+  try {
+    // Step 1: Fetch user (excluding passwordHash)
+    const user = await User.findById(req.params.id).select("-passwordHash");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Step 2: Get latest 30 reels of this user
+    const reels = await Reel.find({ user: req.params.id })
+      .sort({ createdAt: -1 })
+      .limit(30);
+
+    // Step 3: Return user data + reel list + count
+    res.json({
+      ...user.toObject(),
+      postCount: await Reel.countDocuments({ user: req.params.id }), // total count
+      reels, // latest 30 reels
+    });
+
+  } catch (err) {
+    console.error("Error fetching user and reels:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 router.get("/byemail/:email", async (req, res) => {
     try {
