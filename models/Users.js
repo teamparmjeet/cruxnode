@@ -14,4 +14,4 @@ const userSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model("User3", userSchema);
+module.exports = mongoose.model("User4", userSchema);
