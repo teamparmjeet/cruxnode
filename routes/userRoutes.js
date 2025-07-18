@@ -11,7 +11,7 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
     try {
-        const { username, mobile, password, profilePicture, bio } = req.body;
+        const { username, mobile, password,email, profilePicture, bio } = req.body;
 
         // Input validation
         if (!username || !mobile || !password) {
@@ -31,6 +31,7 @@ router.post("/", async (req, res) => {
         const newUser = new User({
             username,
             mobile,
+            email:email || "",
             passwordHash: hashedPassword,
             profilePicture: profilePicture || "", // Default to empty string
             bio: bio || "", // Default to empty string
