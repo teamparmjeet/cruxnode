@@ -11,20 +11,16 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
     try {
-        const { username, email, password, profilePicture, bio } = req.body;
+        const { username, mobile, password, profilePicture, bio } = req.body;
 
         // Input validation
-        if (!username || !email || !password) {
-            return res.status(400).json({ message: "Username, email, and password are required" });
-        }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            return res.status(400).json({ message: "Invalid email format" });
+        if (!username || !mobile || !password) {
+            return res.status(400).json({ message: "Username, mobile number, and password are required" });
         }
 
-        // Check for existing user
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ mobile });
         if (existingUser) {
-            return res.status(400).json({ message: "User already exists with this email" });
+            return res.status(400).json({ message: "User already exists with this mobile number" });
         }
 
         // Hash password
@@ -34,7 +30,7 @@ router.post("/", async (req, res) => {
         // Create and save new user
         const newUser = new User({
             username,
-            email,
+            mobile,
             passwordHash: hashedPassword,
             profilePicture: profilePicture || "", // Default to empty string
             bio: bio || "", // Default to empty string
@@ -45,7 +41,7 @@ router.post("/", async (req, res) => {
         res.status(201).json({
             _id: savedUser._id,
             username: savedUser.username,
-            email: savedUser.email,
+            mobile: savedUser.mobile,
             profilePicture: savedUser.profilePicture,
             bio: savedUser.bio,
             createdAt: savedUser.createdAt,
@@ -63,6 +59,9 @@ router.post("/", async (req, res) => {
     }
 });
 
+
+
+
 router.get("/", authenticateToken, async (req, res) => {
     try {
         const users = await User.find({}, '-passwordHash'); // Exclude passwordHash
@@ -73,28 +72,28 @@ router.get("/", authenticateToken, async (req, res) => {
     }
 });
 
+
 //login user
 router.post("/login", async (req, res) => {
-    const { email, password } = req.body;
+    const { mobile } = req.body;
 
     try {
-        const user = await User.findOne({ email });
-        if (!user) return res.status(400).json({ message: "Invalid credentials 1" });
+        // Find user by mobile number
+        const user = await User.findOne({ mobile });
+        if (!user) return res.status(400).json({ message: "User not found with this mobile number" });
 
-        const isMatch = await bcrypt.compare(password, user.passwordHash);
-        if (!isMatch) return res.status(400).json({ message: "Invalid credentials 2" });
+        // Optional: You could add device/IP-based validation here if needed
 
-        // User authenticated successfully, now create JWT
+        // Prepare JWT payload
         const payload = {
             user: {
-                id: user._id,       // Standard practice to use 'id' in payload
-                username: user.username // You can include other non-sensitive info
+                id: user._id,
+                username: user.username
             }
         };
 
-        // Safely log user action (even if log fails, app continues)
+        // Log the login action (non-blocking)
         try {
-
             await logUserAction({
                 user: user._id,
                 action: "login",
@@ -104,7 +103,7 @@ router.post("/login", async (req, res) => {
                 location: {
                     ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress || "",
                     country: req.headers["cf-ipcountry"] || "",
-                    city: "", // Optional: Use IP geolocation later
+                    city: "",
                     pincode: ""
                 }
             });
@@ -112,81 +111,77 @@ router.post("/login", async (req, res) => {
             console.error("Log error (non-blocking):", logError.message);
         }
 
-        // Sign the token
-        jwt.sign(
-            payload,
-            JWT_SECRET,
-            // { expiresIn: '1h' }, // Token expiration (e.g., 1 hour, '7d' for 7 days, '30m' for 30 minutes)
-            (err, token) => {
-                if (err) {
-                    console.error("JWT signing error:", err);
-                    // throw err; // or handle it by sending a 500 response
-                    return res.status(500).json({ message: "Error generating token." });
-                }
-
-                // Send the token and user info back to the client
-                res.json({
-                    message: "Login successful!",
-                    token: token, // The JWT
-                    user: { // Send back user details as you were, excluding sensitive info like passwordHash
-                        _id: user._id,
-                        username: user.username,
-                        email: user.email,
-                        profilePicture: user.profilePicture,
-                        bio: user.bio,
-                        // Add any other fields you want the client to have immediately after login
-                    }
-                });
+        // Sign JWT token
+        jwt.sign(payload, JWT_SECRET, (err, token) => {
+            if (err) {
+                console.error("JWT signing error:", err);
+                return res.status(500).json({ message: "Error generating token." });
             }
-        );
+
+            // Send back user data and token
+            res.json({
+                message: "Login successful!",
+                token: token,
+                user: {
+                    _id: user._id,
+                    username: user.username,
+                    mobile: user.mobile,
+                    profilePicture: user.profilePicture,
+                    bio: user.bio,
+                }
+            });
+        });
+
     } catch (err) {
+        console.error("Login error:", err);
         res.status(500).json({ message: "Server error" });
     }
 });
 
 
+
 //find single user 
 router.get("/:id", async (req, res) => {
-  try {
-    // Step 1: Fetch the user (excluding password)
-    const user = await User.findById(req.params.id).select("-passwordHash");
-    if (!user) return res.status(404).json({ message: "User not found" });
+    try {
+        // Step 1: Fetch the user (excluding password)
+        const user = await User.findById(req.params.id).select("-passwordHash");
+        if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Step 2: Count how many reels this user has posted
-    const postCount = await Reel.countDocuments({ user: req.params.id });
+        // Step 2: Count how many reels this user has posted
+        const postCount = await Reel.countDocuments({ user: req.params.id });
 
-    // Step 3: Return both user info and post count
-    res.json({
-      ...user.toObject(), // convert Mongoose doc to plain object to add extra field
-      postCount,
-    });
-  } catch (err) {
-    console.error("Error fetching user data:", err);
-    res.status(500).json({ message: "Server error" });
-  }
+        // Step 3: Return both user info and post count
+        res.json({
+            ...user.toObject(), // convert Mongoose doc to plain object to add extra field
+            postCount,
+        });
+    } catch (err) {
+        console.error("Error fetching user data:", err);
+        res.status(500).json({ message: "Server error" });
+    }
 });
 router.get("/userpost/:id", async (req, res) => {
-  try {
-    // Step 1: Fetch user (excluding passwordHash)
-    const user = await User.findById(req.params.id).select("-passwordHash");
-    if (!user) return res.status(404).json({ message: "User not found" });
+    try {
+        // Step 1: Fetch user (excluding passwordHash)
+        const user = await User.findById(req.params.id).select("-passwordHash");
+        if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Step 2: Get latest 30 reels of this user
-    const reels = await Reel.find({ user: req.params.id })
-      .sort({ createdAt: -1 })
-      .limit(30);
+        // Step 2: Get latest 30 reels of this user
+        const reels = await Reel.find({ user: req.params.id })
+            .sort({ createdAt: -1 })
+            .limit(30);
 
-    // Step 3: Return user data + reel list + count
-    res.json({
-      ...user.toObject(),
-      postCount: await Reel.countDocuments({ user: req.params.id }), // total count
-      reels, // latest 30 reels
-    });
+        // Step 3: Return user data + reel list + count
+        res.json({
+            ...user.toObject(),
+            postCount: await Reel.countDocuments({ user: req.params.id }), // total count
+            reels, // latest 30 reels
+        });
 
-  } catch (err) {
-    console.error("Error fetching user and reels:", err);
-    res.status(500).json({ message: "Server error" });
-  }
+    } catch (err) {
+        console.error("Error fetching user and reels:", err);
+        res.status(500).json({ message: "Server error" });
+    }
 });
 
 

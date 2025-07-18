@@ -3,8 +3,9 @@ const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
-  email: { type: String, required: true, unique: true },
-  passwordHash: { type: String, required: true },
+  mobile: { type: String, required: true, unique: true },
+  email: { type: String, unique: true },
+  passwordHash: { type: String, },
   profilePicture: { type: String, default: "" },
   followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
@@ -13,4 +14,4 @@ const userSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model("User1", userSchema);
+module.exports = mongoose.model("User3", userSchema);
