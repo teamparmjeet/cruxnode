@@ -6,7 +6,7 @@ const musicSchema = new mongoose.Schema({
   url: { type: String, required: true }, // audio file URL
   thumbnail: String,
   duration: Number, // optional: length in seconds
-  uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User1' }, // admin/user
+  uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User4' }, // admin/user
 }, { timestamps: true });
 
 module.exports = mongoose.model('Music', musicSchema);

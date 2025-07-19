@@ -1,10 +1,10 @@
   const mongoose = require('mongoose');
 
   const commentSchema = new mongoose.Schema({
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User1', required: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User4', required: true },
     reel: { type: mongoose.Schema.Types.ObjectId, ref: 'Reel', required: true },
     text: { type: String, required: true },
-    likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User1' }],
+    likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User4' }],
     parentComment: { type: mongoose.Schema.Types.ObjectId, ref: 'Comment', default: null },
   }, { timestamps: true });
 
