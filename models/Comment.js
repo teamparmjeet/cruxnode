@@ -2,7 +2,7 @@
 
   const commentSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User4', required: true },
-    reel: { type: mongoose.Schema.Types.ObjectId, ref: 'Reel', required: true },
+    reel: { type: mongoose.Schema.Types.ObjectId, ref: 'Reel2', required: true },
     text: { type: String, required: true },
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User4' }],
     parentComment: { type: mongoose.Schema.Types.ObjectId, ref: 'Comment', default: null },

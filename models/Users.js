@@ -7,8 +7,8 @@ const userSchema = new mongoose.Schema({
   email: { type: String},
   passwordHash: { type: String, },
   profilePicture: { type: String, default: "" },
-  followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User4' }],
+  following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User4' }],
   bio: { type: String, default: "" },
   isSuspended: { type: Boolean, required: true, default: false },
   createdAt: { type: Date, default: Date.now }
