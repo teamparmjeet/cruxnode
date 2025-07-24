@@ -68,38 +68,29 @@ const REELS_PER_PAGE = 4;
 
 router.get("/show", async (req, res) => {
     try {
-        // 1. Get the page number from query params, defaulting to 1 if not provided.
-        // We use parseInt to ensure it's a valid number.
         const page = parseInt(req.query.page || "1", 10);
-
-        // 2. Calculate the number of documents to skip based on the current page.
-        // For page 1, we skip 0. For page 2, we skip `REELS_PER_PAGE` documents, etc.
         const skip = (page - 1) * REELS_PER_PAGE;
 
-        // 3. Fetch the total count of all reels in the database.
-        // This helps the frontend know when to stop requesting more pages.
         const totalReels = await Reel.countDocuments({});
 
-        // 4. Update the database query to:
-        //    - Sort by creation date to show the newest reels first (optional but recommended).
-        //    - Skip the documents from previous pages.
-        //    - Limit the number of documents to `REELS_PER_PAGE`.
-        const reels = await Reel.find({})
-            .sort({ createdAt: -1 }) // Make sure you have a `createdAt` timestamp in your schema
-            .skip(skip)
-            .limit(REELS_PER_PAGE);
+        // Sample a large number (up to totalReels), then paginate in code
+        const sampledReels = await Reel.aggregate([
+            { $sample: { size: totalReels } } // randomly shuffle all
+        ]);
 
-        // 5. Send the paginated data along with total pages information in a structured object.
+        const paginatedReels = sampledReels.slice(skip, skip + REELS_PER_PAGE);
+
         res.status(200).json({
-            reels,
+            reels: paginatedReels,
             totalPages: Math.ceil(totalReels / REELS_PER_PAGE),
             currentPage: page,
         });
     } catch (error) {
-        console.error("Error Fetching Data with Pagination:", error);
+        console.error("Error Fetching Random Reels:", error);
         res.status(500).json({ message: "Error fetching reels" });
     }
 });
+
 
 
 
