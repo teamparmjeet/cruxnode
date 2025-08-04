@@ -63,26 +63,30 @@ router.get("/", async (req, res) => {
     }
 });
 
-// fetch all reels
-const REELS_PER_PAGE = 4;
+
 
 router.get("/show", async (req, res) => {
     try {
         const page = parseInt(req.query.page || "1", 10);
-        const skip = (page - 1) * REELS_PER_PAGE;
+        const limit = parseInt(req.query.limit || "4", 10); // frontend-controlled limit
+        const skip = (page - 1) * limit;
 
-        const totalReels = await Reel.countDocuments({});
+        // Only fetch Published reels (optional, adjust based on your use case)
+        const matchStage = { $match: { status: "Published" } };
 
-        // Sample a large number (up to totalReels), then paginate in code
-        const sampledReels = await Reel.aggregate([
-            { $sample: { size: totalReels } } // randomly shuffle all
-        ]);
+        // Get total number of published reels
+        const totalReels = await Reel.countDocuments(matchStage.$match);
 
-        const paginatedReels = sampledReels.slice(skip, skip + REELS_PER_PAGE);
+        const pipeline = [
+            matchStage,
+            { $sample: { size: limit } } // Only fetch as many as needed
+        ];
+
+        const reels = await Reel.aggregate(pipeline);
 
         res.status(200).json({
-            reels: paginatedReels,
-            totalPages: Math.ceil(totalReels / REELS_PER_PAGE),
+            reels,
+            total: totalReels,
             currentPage: page,
         });
     } catch (error) {
