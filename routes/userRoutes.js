@@ -3,7 +3,6 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/Users");
 const jwt = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT_SECRET;
-const authenticateToken = require("../middleware/auth");
 const logUserAction = require("../utils/logUserAction");
 const Reel = require("../models/Reel")
 const router = express.Router();
@@ -11,44 +10,52 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
     try {
-        const { username, mobile, password,email, profilePicture, bio } = req.body;
+        const { userid, password, username, mobile, email, profilePicture, bio } = req.body;
 
-        // Input validation
-        if (!username || !mobile || !password) {
-            return res.status(400).json({ message: "Username, mobile number, and password are required" });
+        // ✅ Validate required fields
+        if (!userid || !password) {
+            return res.status(400).json({ message: "User ID and password are required" });
         }
 
-        const existingUser = await User.findOne({ mobile });
+        // ✅ Check if userid already exists
+        const existingUser = await User.findOne({ userid });
         if (existingUser) {
-            return res.status(400).json({ message: "User already exists with this mobile number" });
+            return res.status(400).json({ message: "User already exists with this User ID" });
         }
 
-        // Hash password
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        // ✅ Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create and save new user
+        // ✅ Create user
         const newUser = new User({
-            username,
-            mobile,
-            email:email || "",
-            passwordHash: hashedPassword,
-            profilePicture: profilePicture || "", // Default to empty string
-            bio: bio || "", // Default to empty string
+            userid,
+            username: username || "",
+            mobile: mobile || "",
+            email: email || "",
+            passwordHash: hashedPassword || "",
+            profilePicture: profilePicture || "",
+            bio: bio || "",
         });
+
         const savedUser = await newUser.save();
 
-        // Send response
+        // ✅ Response
         res.status(201).json({
             _id: savedUser._id,
+            userid: savedUser.userid,
             username: savedUser.username,
             mobile: savedUser.mobile,
+            email: savedUser.email,
             profilePicture: savedUser.profilePicture,
             bio: savedUser.bio,
+            followers: savedUser.followers,
+            following: savedUser.following,
+            isSuspended: savedUser.isSuspended,
             createdAt: savedUser.createdAt,
         });
+
     } catch (error) {
-        console.error("Error creating user:", error); // Log for debugging
+        console.error("Error creating user:", error);
         if (error.code === 11000) {
             const duplicatedField = Object.keys(error.keyPattern)[0];
             return res.status(400).json({
@@ -63,7 +70,7 @@ router.post("/", async (req, res) => {
 
 
 
-router.get("/", authenticateToken, async (req, res) => {
+router.get("/", async (req, res) => {
     try {
         const users = await User.find({}, '-passwordHash'); // Exclude passwordHash
         res.status(200).json(users);
@@ -210,7 +217,7 @@ router.get("/byemailapp/:email", async (req, res) => {
 });
 
 // delete user
-router.delete("/:id", authenticateToken, async (req, res) => {
+router.delete("/:id", async (req, res) => {
     try {
         await User.findByIdAndDelete(req.params.id);
         res.json({ message: "User deleted successfully" });
@@ -322,7 +329,7 @@ router.put("/:id/unfollow", async (req, res) => {
 
 // update user
 
-router.put("/:id", authenticateToken, async (req, res) => {
+router.put("/:id", async (req, res) => {
     const { username, profilePicture, bio, currentPassword, newPassword, isSuspended } = req.body;
 
     try {

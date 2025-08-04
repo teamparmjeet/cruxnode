@@ -2,9 +2,8 @@ const express = require("express");
 const app = express();
 require("dotenv").config();
 const mongoose = require("mongoose");
-const cors = require("cors"); // ✅ added
+const cors = require("cors");
 const bodyParser = require("body-parser");
-const authenticateToken = require("./middleware/auth");
 
 // ✅ Use CORS before routes
 app.use(cors({
@@ -27,10 +26,11 @@ const reelRoute = require("./routes/reelRoutes");
 const musicRoute = require("./routes/musicRoutes");
 const commentRoute = require("./routes/commentRoute");
 
+// ✅ Removed authentication requirement
 app.use("/api/users", userRoutes);
-app.use("/api/reels", authenticateToken, reelRoute);
-app.use("/api/music", authenticateToken, musicRoute);
-app.use("/api/comment", authenticateToken, commentRoute);
+app.use("/api/reels", reelRoute);
+app.use("/api/music", musicRoute);
+app.use("/api/comment", commentRoute);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
