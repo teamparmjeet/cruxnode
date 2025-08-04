@@ -10,21 +10,33 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
     try {
-        const { userid, password, username, mobile, email, profilePicture, bio } = req.body;
+        const { userid, username, mobile, email, profilePicture, bio } = req.body;
+        console.log(req.body);
 
         // ✅ Validate required fields
-        if (!userid || !password) {
-            return res.status(400).json({ message: "User ID and password are required" });
+        if (!userid || !mobile) {
+            return res.status(400).json({ message: "User ID and mobile no are required" });
         }
 
         // ✅ Check if userid already exists
         const existingUser = await User.findOne({ userid });
         if (existingUser) {
-            return res.status(400).json({ message: "User already exists with this User ID" });
+            // Instead of error, return existing user data
+            return res.status(200).json({
+                message: "User already registered",
+                _id: existingUser._id,
+                userid: existingUser.userid,
+                username: existingUser.username,
+                mobile: existingUser.mobile,
+                email: existingUser.email,
+                profilePicture: existingUser.profilePicture,
+                bio: existingUser.bio,
+                followers: existingUser.followers,
+                following: existingUser.following,
+                isSuspended: existingUser.isSuspended,
+                createdAt: existingUser.createdAt,
+            });
         }
-
-        // ✅ Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
 
         // ✅ Create user
         const newUser = new User({
@@ -32,15 +44,15 @@ router.post("/", async (req, res) => {
             username: username || "",
             mobile: mobile || "",
             email: email || "",
-            passwordHash: hashedPassword || "",
             profilePicture: profilePicture || "",
             bio: bio || "",
         });
 
         const savedUser = await newUser.save();
 
-        // ✅ Response
+        // ✅ Response for newly created user
         res.status(201).json({
+            message: "User registered successfully",
             _id: savedUser._id,
             userid: savedUser.userid,
             username: savedUser.username,
@@ -56,16 +68,10 @@ router.post("/", async (req, res) => {
 
     } catch (error) {
         console.error("Error creating user:", error);
-        if (error.code === 11000) {
-            const duplicatedField = Object.keys(error.keyPattern)[0];
-            return res.status(400).json({
-                message: `The ${duplicatedField} "${error.keyValue[duplicatedField]}" is already in use.`,
-                field: duplicatedField,
-            });
-        }
         res.status(500).json({ message: "Server error" });
     }
 });
+
 
 
 
