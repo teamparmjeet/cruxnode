@@ -62,10 +62,9 @@ router.get("/", async (req, res) => {
         console.log("Error to Fetching Data", error)
     }
 });
-
 router.get("/show", async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit || "4", 10);
+    const limit = parseInt(req.query.limit || "1", 10);
     const exclude = req.query.exclude?.split(",").filter(Boolean) || [];
 
     const matchStage = exclude.length
@@ -74,7 +73,7 @@ router.get("/show", async (req, res) => {
 
     const reels = await Reel.aggregate([
       { $match: matchStage },
-      { $sample: { size: limit } },
+      { $sample: { size: limit } }, // still returns random reel(s)
     ]);
 
     return res.status(200).json({ reels });
@@ -83,7 +82,6 @@ router.get("/show", async (req, res) => {
     return res.status(500).json({ message: "Error fetching reels" });
   }
 });
-
 
 
 
