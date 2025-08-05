@@ -64,35 +64,42 @@ router.get("/", async (req, res) => {
 });
 
 
-
 router.get("/show", async (req, res) => {
-    try {
-        const page = parseInt(req.query.page || "1", 10);
-        const limit = parseInt(req.query.limit || "4", 10); // frontend-controlled limit
-        const skip = (page - 1) * limit;
+  try {
+    const page = parseInt(req.query.page || "1", 10);
+    const limit = parseInt(req.query.limit || "4", 10);
+    const skip = (page - 1) * limit;
 
-        // Only fetch Published reels (optional, adjust based on your use case)
-        const matchStage = { $match: { status: "Published" } };
+    const matchStage = { status: "Published" };
 
-        // Get total number of published reels
-        const totalReels = await Reel.countDocuments(matchStage.$match);
+    // Get total number of published reels
+    const totalReels = await Reel.countDocuments(matchStage);
 
-        const pipeline = [
-            matchStage,
-            { $sample: { size: limit } } // Only fetch as many as needed
-        ];
+    // Step 1: Get paginated IDs
+    const paginatedIds = await Reel.find(matchStage)
+      .sort({ createdAt: -1 }) // or any other field for consistent order
+      .skip(skip)
+      .limit(limit)
+      .select("_id");
 
-        const reels = await Reel.aggregate(pipeline);
+    const ids = paginatedIds.map((doc) => doc._id);
 
-        res.status(200).json({
-            reels,
-            total: totalReels,
-            currentPage: page,
-        });
-    } catch (error) {
-        console.error("Error Fetching Random Reels:", error);
-        res.status(500).json({ message: "Error fetching reels" });
-    }
+    // Step 2: Fetch those documents randomly from the selected page
+    const reels = await Reel.aggregate([
+      { $match: { _id: { $in: ids } } },
+      { $sample: { size: ids.length } },
+    ]);
+
+    return res.status(200).json({
+      reels,
+      total: totalReels,
+      currentPage: page,
+      totalPages: Math.ceil(totalReels / limit),
+    });
+  } catch (error) {
+    console.error("Error Fetching Random Reels:", error);
+    return res.status(500).json({ message: "Error fetching reels" });
+  }
 });
 
 
