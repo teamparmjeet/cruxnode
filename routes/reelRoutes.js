@@ -66,38 +66,36 @@ router.get("/", async (req, res) => {
 
 router.get("/show", async (req, res) => {
   try {
-    const page = parseInt(req.query.page || "1", 10);
-    const limit = parseInt(req.query.limit || "4", 10);
-    const skip = (page - 1) * limit;
+    // 1. Parse query parameters
+    const limit = parseInt(req.query.limit || "5", 10);
+    const excludeIds = req.query.exclude ? req.query.exclude.split(",") : [];
 
-    const matchStage = { status: "Published" };
+    // 2. Define the matching criteria for the database query
+    const matchStage = {
+      status: "Published",
+      // Ensure we don't fetch reels we've already seen
+      _id: { $nin: excludeIds.map(id => new mongoose.Types.ObjectId(id)) }, // Make sure to import mongoose if not done globally
+    };
 
-    // Get total number of published reels
-    const totalReels = await Reel.countDocuments(matchStage);
-
-    // Step 1: Get paginated IDs
-    const paginatedIds = await Reel.find(matchStage)
-      .sort({ createdAt: -1 }) // or any other field for consistent order
-      .skip(skip)
-      .limit(limit)
-      .select("_id");
-
-    const ids = paginatedIds.map((doc) => doc._id);
-
-    // Step 2: Fetch those documents randomly from the selected page
+    // 3. Use MongoDB's aggregation pipeline to efficiently get random documents
+    // This is much better for a "For You" feed than pagination.
     const reels = await Reel.aggregate([
-      { $match: { _id: { $in: ids } } },
-      { $sample: { size: ids.length } },
+      { $match: matchStage },
+      { $sample: { size: limit } },
+      // You can add a $lookup stage here if you need to populate user data, etc.
     ]);
 
+    // Note: We don't return pagination data (totalPages, etc.) because the feed is now endless and random, not page-based.
     return res.status(200).json({
       reels,
-      total: totalReels,
-      currentPage: page,
-      totalPages: Math.ceil(totalReels / limit),
     });
+    
   } catch (error) {
     console.error("Error Fetching Random Reels:", error);
+    // Be careful not to leak database-specific error details in production
+    if (error.name === 'BSONTypeError') {
+       return res.status(400).json({ message: "Invalid ID format in exclude list." });
+    }
     return res.status(500).json({ message: "Error fetching reels" });
   }
 });
