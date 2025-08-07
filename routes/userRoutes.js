@@ -199,10 +199,10 @@ router.get("/userpost/:id", async (req, res) => {
 });
 
 
-router.get("/byemail/:email", async (req, res) => {
+router.get("/bymobile/:mobile", async (req, res) => {
     try {
 
-        const user = await User.findOne({ email: req.params.email }).select("-passwordHash");
+        const user = await User.findOne({ mobile: req.params.mobile }).select("-passwordHash");
 
         if (!user) return res.status(404).json({ message: "User not found" });
         res.json(user);
