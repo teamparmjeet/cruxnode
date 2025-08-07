@@ -84,7 +84,23 @@ router.get("/show", async (req, res) => {
 });
 
 
+router.get("/view/:id", async (req, res) => {
+    try {
+        const updated = await Reel.findByIdAndUpdate(
+            req.params.id,
+            { $inc: { views: 1 } }
+        );
 
+        if (!updated) {
+            return res.status(404).json({ message: "Video not found!" });
+        }
+
+        res.sendStatus(200);
+    } catch (error) {
+        console.error("Error incrementing video view:", error);
+        res.status(500).json({ message: "Error incrementing video view" });
+    }
+});
 
 
 router.get("/:id", async (req, res) => {
