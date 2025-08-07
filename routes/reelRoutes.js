@@ -86,7 +86,7 @@ router.get("/show", async (req, res) => {
 
 
 
-// fetch single reel 
+
 router.get("/:id", async (req, res) => {
     try {
         const video = await Reel.findById(req.params.id);
