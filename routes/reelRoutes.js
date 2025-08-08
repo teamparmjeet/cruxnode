@@ -106,10 +106,9 @@ router.get("/shownew", async (req, res) => {
         const reelsWithFollowStatus = await Promise.all(
             reels.map(async (reel) => {
                 const isFollowing = await User.exists({
-                    _id: reel.userId,
+                    _id: reel.user,
                     followers: new mongoose.Types.ObjectId(currentUserId),
                 });
-
                 return {
                     ...reel,
                     isFollowing: !!isFollowing, // true or false
