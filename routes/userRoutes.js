@@ -236,6 +236,9 @@ router.delete("/:id", async (req, res) => {
 
 router.put("/:id/follow", async (req, res) => {
     const { userId } = req.body; // ID of the user who is following
+    if (userId === req.params.id) {
+        return res.status(400).json({ message: "You can't follow yourself" });
+    }
 
     try {
         const userToFollow = await User.findById(req.params.id);
@@ -289,7 +292,6 @@ router.put("/:id/follow", async (req, res) => {
 
 router.put("/:id/unfollow", async (req, res) => {
     const { userId } = req.body;
-
     try {
         const userToUnfollow = await User.findById(req.params.id);
         const currentUser = await User.findById(userId);

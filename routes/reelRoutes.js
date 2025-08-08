@@ -2,6 +2,8 @@ const express = require("express");
 const mongoose = require('mongoose');
 const router = express.Router();
 const Reel = require("../models/Reel");
+const User = require("../models/Users");
+
 const logUserAction = require("../utils/logUserAction");
 router.post("/upload", async (req, res) => {
     try {
@@ -63,26 +65,64 @@ router.get("/", async (req, res) => {
     }
 });
 router.get("/show", async (req, res) => {
-  try {
-    const limit = parseInt(req.query.limit || "1", 10);
-    const exclude = req.query.exclude?.split(",").filter(Boolean) || [];
+    try {
+        const limit = parseInt(req.query.limit || "1", 10);
+        const exclude = req.query.exclude?.split(",").filter(Boolean) || [];
 
-    const matchStage = exclude.length
-      ? { _id: { $nin: exclude.map((id) => new mongoose.Types.ObjectId(id)) } }
-      : {};
+        const matchStage = exclude.length
+            ? { _id: { $nin: exclude.map((id) => new mongoose.Types.ObjectId(id)) } }
+            : {};
 
-    const reels = await Reel.aggregate([
-      { $match: matchStage },
-      { $sample: { size: limit } }, // still returns random reel(s)
-    ]);
+        const reels = await Reel.aggregate([
+            { $match: matchStage },
+            { $sample: { size: limit } }, // still returns random reel(s)
+        ]);
 
-    return res.status(200).json({ reels });
-  } catch (error) {
-    console.error("Error fetching reels:", error);
-    return res.status(500).json({ message: "Error fetching reels" });
-  }
+        return res.status(200).json({ reels });
+    } catch (error) {
+        console.error("Error fetching reels:", error);
+        return res.status(500).json({ message: "Error fetching reels" });
+    }
 });
+router.get("/shownew", async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit || "1", 10);
+        const exclude = req.query.exclude?.split(",").filter(Boolean) || [];
+        const currentUserId = req.query.userId;
 
+        if (!currentUserId) {
+            return res.status(400).json({ message: "Missing userId" });
+        }
+
+        const matchStage = exclude.length
+            ? { _id: { $nin: exclude.map(id => new mongoose.Types.ObjectId(id)) } }
+            : {};
+
+        const reels = await Reel.aggregate([
+            { $match: matchStage },
+            { $sample: { size: limit } }
+        ]);
+
+        const reelsWithFollowStatus = await Promise.all(
+            reels.map(async (reel) => {
+                const isFollowing = await User.exists({
+                    _id: reel.userId,
+                    followers: new mongoose.Types.ObjectId(currentUserId),
+                });
+
+                return {
+                    ...reel,
+                    isFollowing: !!isFollowing, // true or false
+                };
+            })
+        );
+
+        return res.status(200).json({ reels: reelsWithFollowStatus });
+    } catch (error) {
+        console.error("Error fetching reels:", error);
+        return res.status(500).json({ message: "Error fetching reels" });
+    }
+});
 
 router.get("/view/:id", async (req, res) => {
     try {
